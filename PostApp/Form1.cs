@@ -14,11 +14,11 @@ using System.Collections;
 
 namespace PostApp
 {
-    public partial class Form1 : Form
+    public partial class PostApp : Form
     {
 
         Relabase relabase;
-        public Form1()
+        public PostApp()
         {
             InitializeComponent();
             relabase = new Relabase();
@@ -211,6 +211,11 @@ namespace PostApp
         private void button12_Click(object sender, EventArgs e)
         {
             richTextBox1.AppendText(relabase.getIndexes() + '\n');
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
         }
     }
 
