@@ -88,11 +88,11 @@ namespace PostApp
             label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
             StringBuilder s = new StringBuilder();
             s.Append(relabase.getIndexes()
+                + ". Время работы: "
+                + sw.Elapsed.ToString()
                 + ". Случайное заполнение. "
                 + "Количество данных: "
                 + trackBar1.Value
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
                 + '\n'
                 );
             richTextBox1.AppendText(s.ToString());
@@ -114,11 +114,11 @@ namespace PostApp
                 label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
                 StringBuilder s = new StringBuilder();
                 s.Append(relabase.getIndexes()
+                + ". Время работы: "
+                + sw.Elapsed.ToString()
                 + ". Случайная выборка. "
                 + "Количество строк: "
                 + trackBar1.Value
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
                 + '\n'
                 );
                 richTextBox1.AppendText(s.ToString());
@@ -139,11 +139,11 @@ namespace PostApp
                 label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
                 StringBuilder s = new StringBuilder();
                 s.Append(relabase.getIndexes()
+                + ". Время работы: "
+                + sw.Elapsed.ToString()
                 + ". Выборка из диапазона. "
                 + "Количество строк: "
                 + ((DataTable)w[0]).Rows.Count.ToString()
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
                 + '\n'
                 );
                 richTextBox1.AppendText(s.ToString());
@@ -185,11 +185,11 @@ namespace PostApp
                 label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
                 StringBuilder s = new StringBuilder();
                 s.Append(relabase.getIndexes()
+                + ". Время работы: "
+                + sw.Elapsed.ToString()
                 + ". Поиск по слову. "
                 + "Количество строк: "
                 + ((DataTable)w[0]).Rows.Count.ToString()
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
                 + '\n'
                 );
                 richTextBox1.AppendText(s.ToString());
