@@ -10,42 +10,28 @@ using System.Windows.Forms;
 using Mono.Security;
 using Npgsql;
 using System.Diagnostics;
-using System.Collections;
 
 namespace PostApp
 {
-    public partial class Form1 : Form
+    public partial class mainForm : Form
     {
 
         Relabase relabase;
-        public Form1()
+        public mainForm()
         {
             InitializeComponent();
             relabase = new Relabase();
-
         }
 
         private void button1_Click(object sender, EventArgs e) //соединение
         {
-            try
-            {
-                relabase.connect();
-                label_display_info.Text = "Соединение установлено";
-                pictureBox1.BackColor = Color.Green;
-                EIGnc(() => relabase.dropBTreeIndex());
-                EIGnc(() => relabase.dropGinIndex());
-                EIGnc(() => relabase.dropHashIndex());
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Ошибка соединения");
-                return;
-            }
-
+            EIG(() => relabase.connect());
+            label_display_info.Text = "Соединение установлено";
+            pictureBox1.BackColor = Color.Green;
         }
         private void button2_Click(object sender, EventArgs e) //заполнение
         {
-            EIG(() => richTextBox1.AppendText("Добавлено: 1000000 строк за " + relabase.generateWords(1000000).Elapsed.ToString() + " время\n"));
+            EIG(() => label_display_info.Text = "Добавлено: " + relabase.fillTable(100000) + " строк");
         }
         private void button3_Click(object sender, EventArgs e) //подгрузка таблицы
         {
@@ -66,12 +52,12 @@ namespace PostApp
         }
         private void button5_Click(object sender, EventArgs e) //создание b индекса
         {
-            EIGnc(() => relabase.dropHashIndex());
+            EIG(() => relabase.dropHashIndex());
             EIG(() => relabase.addBTreeIndex());
         }
         private void button6_Click(object sender, EventArgs e) //создание hash индекса
         {
-            EIGnc(() => relabase.dropBTreeIndex());
+            EIG(() => relabase.dropBTreeIndex());
             EIG(() => relabase.addHashIndex());
         }
         private void trackBar1_ValueChanged(object sender, EventArgs e)
@@ -80,48 +66,34 @@ namespace PostApp
         }
         private void Form1_Load(object sender, EventArgs e)
         {
+            EIG(() => new Relabase().connect().dropHashIndex());
         }
         private void button9_Click(object sender, EventArgs e) //(тест) случайное заполнение
         {
             Stopwatch sw = new Stopwatch();
-            EIG(() => sw = relabase.generateWords(trackBar1.Value));
+            sw.Start();
+            EIG(() => relabase.fillTable(trackBar1.Value));
+            sw.Stop();
             label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
-            StringBuilder s = new StringBuilder();
-            s.Append(relabase.getIndexes()
-                + ". Случайное заполнение. "
-                + "Количество данных: "
-                + trackBar1.Value
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
-                + '\n'
-                );
-            richTextBox1.AppendText(s.ToString());
         }
         private void button10_Click(object sender, EventArgs e) //убрать все индексы
         {
-            EIGnc(() => relabase.dropBTreeIndex());
-            EIGnc(() => relabase.dropGinIndex());
-            EIGnc(() => relabase.dropHashIndex());
+            EIG(() => relabase.dropBTreeIndex());
+            EIG(() => relabase.dropGinIndex());
+            EIG(() => relabase.dropHashIndex());
         }
         private void button8_Click(object sender, EventArgs e) //(тест) случайная выборка
         {
             try
             {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
                 var w = relabase.randSelect(trackBar1.Value);
-                Stopwatch sw = (Stopwatch)w[1];
-                dataGridView1.DataSource = (DataTable)w[0];
-                label_row_count.Text = "Всего строк: " + ((DataTable)w[0]).Rows.Count.ToString();
+                dataGridView1.DataSource = w;
+                label_row_count.Text = "Всего строк: " + w.Rows.Count.ToString();
+                sw.Stop();
                 label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
-                StringBuilder s = new StringBuilder();
-                s.Append(relabase.getIndexes()
-                + ". Случайная выборка. "
-                + "Количество строк: "
-                + trackBar1.Value
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
-                + '\n'
-                );
-                richTextBox1.AppendText(s.ToString());
+                richTextBox1.AppendText(sw.Elapsed.ToString() + '\n');
             }
             catch (Exception ew)
             {
@@ -132,27 +104,21 @@ namespace PostApp
         {
             try
             {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
                 var w = relabase.diapSelect(trackBar1.Value);
-                Stopwatch sw = (Stopwatch)w[1];
-                dataGridView1.DataSource = (DataTable)w[0];
-                label_row_count.Text = "Всего строк: " + ((DataTable)w[0]).Rows.Count.ToString();
+                dataGridView1.DataSource = w;
+                label_row_count.Text = "Всего строк: " + w.Rows.Count.ToString();
+                sw.Stop();
                 label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
-                StringBuilder s = new StringBuilder();
-                s.Append(relabase.getIndexes()
-                + ". Выборка из диапазона. "
-                + "Количество строк: "
-                + ((DataTable)w[0]).Rows.Count.ToString()
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
-                + '\n'
-                );
-                richTextBox1.AppendText(s.ToString());
+                richTextBox1.AppendText(sw.Elapsed.ToString() + '\n');
             }
             catch (Exception ew)
             {
                 richTextBox1.AppendText(ew.Message + '\n');
             }
         }
+
         public void EIG(Action action)
         {
             try
@@ -161,70 +127,29 @@ namespace PostApp
             }
             catch (Exception ew)
             {
-                richTextBox1.AppendText(ew.Message + "\n\r");
-            }
-        } //обработчик исключений
-        public void EIGnc(Action action)
-        {
-            try
-            {
-                action.Invoke();
-            }
-            catch (Exception ew)
-            {
-            }
-        } //тихий обработчик    
-        private void button13_Click(object sender, EventArgs e) //(тест)поиск по слову
-        {
-            try
-            {
-                var w = relabase.findByWord(textBox1.Text);
-                Stopwatch sw = (Stopwatch)w[1];
-                dataGridView1.DataSource = (DataTable)w[0];
-                label_row_count.Text = "Всего строк: " + ((DataTable)w[0]).Rows.Count.ToString();
-                label_time_elapsed.Text = "s:" + sw.Elapsed.Seconds + ":ms" + sw.Elapsed.Milliseconds / 10;
-                StringBuilder s = new StringBuilder();
-                s.Append(relabase.getIndexes()
-                + ". Поиск по слову. "
-                + "Количество строк: "
-                + ((DataTable)w[0]).Rows.Count.ToString()
-                + ". Время работы: "
-                + sw.Elapsed.ToString()
-                + '\n'
-                );
-                richTextBox1.AppendText(s.ToString());
-            }
-            catch (Exception ew)
-            {
                 richTextBox1.AppendText(ew.Message + '\n');
             }
-        }
-        private void button11_Click(object sender, EventArgs e) //добавление GIN индекса
-        {
-            EIG(() => relabase.addGinIndex());
-        }
-        private void button14_Click(object sender, EventArgs e) //обновление GINa
-        {
-            EIG(() => relabase.updateGinIndex());
-        }
+        } //обработчик исключений
 
         private void button12_Click(object sender, EventArgs e)
         {
-            richTextBox1.AppendText(relabase.getIndexes() + '\n');
+            EIG(() => label_display_info.Text = "Добавлено: " + relabase.generateWords(100000) + " строк");
+        }
+
+        private void button13_Click(object sender, EventArgs e)
+        {
+
         }
     }
 
     public class Relabase
     {
-        static String dbSettings = "Server=localhost;Port=5432;User Id=postgres;Password=1234;Database=dozvla_csharp;";
+        static String dbSettings = "Server=localhost;Port=5432;User Id=postgres;Password=1234;Database=task2;";
         NpgsqlConnection dbConnection;
         Random r = new Random();
         Timer t = new Timer();
         List<Record> records = new List<Record>();
         myRand mr = new myRand();
-        bool hashEnabled = false;
-        bool bTreeEnabled = false;
-        bool GinEnabled = false;
 
         public Relabase()
         {
@@ -237,20 +162,21 @@ namespace PostApp
         public Relabase connect()
         {
             dbConnection.Open();
-            NpgsqlCommand np = new NpgsqlCommand("SET default_text_search_config = russian;");
-            np.Connection = dbConnection;
-            np.ExecuteNonQuery();
             return this;
         }
-        public String getIndexes()
+        public int fillTable(int inputCount)
         {
-            StringBuilder stringBuilder = new StringBuilder();
-            if (hashEnabled) stringBuilder.Append("HASH ");
-            if (bTreeEnabled) stringBuilder.Append("bTREE ");
-            if (GinEnabled) stringBuilder.Append("GIN ");
+            int count = 0;
+            for (int i = 0; i < inputCount; i++)
+            {
+                String ticks = DateTime.Now.ToString();
+                int p = r.Next(1, 4);
 
-            if (stringBuilder.Length == 0) return "Индексы не установлены.";
-            else return "Установлены индексы: " + stringBuilder;
+                NpgsqlCommand fillCommand = new NpgsqlCommand("INSERT INTO Таблица_1 VALUES(" + p + ", '" + ticks + "');");
+                fillCommand.Connection = dbConnection;
+                count += fillCommand.ExecuteNonQuery();
+            }
+            return count;
         }
         public void clearTable()
         {
@@ -288,7 +214,6 @@ namespace PostApp
                 );
             np.Connection = dbConnection;
             np.ExecuteNonQuery();
-            bTreeEnabled = true;
         }
         public void addHashIndex()
         {
@@ -297,106 +222,68 @@ namespace PostApp
                 );
             np.Connection = dbConnection;
             np.ExecuteNonQuery();
-            hashEnabled = true;
         }
         public void dropHashIndex()
-        {
-            NpgsqlCommand np = new NpgsqlCommand("DROP INDEX \"hashTree\"");
-            np.Connection = dbConnection;
-            np.ExecuteNonQuery();
-            hashEnabled = false;
-        }
-        public void dropBTreeIndex()
         {
             NpgsqlCommand np = new NpgsqlCommand("DROP INDEX \"bTree\"");
             np.Connection = dbConnection;
             np.ExecuteNonQuery();
-            bTreeEnabled = false;
+
+
+        }
+        public void dropBTreeIndex()
+        {
+            NpgsqlCommand np = new NpgsqlCommand("DROP INDEX \"hashTree\"");
+            np.Connection = dbConnection;
+            np.ExecuteNonQuery();
         }
         public void dropGinIndex()
         {
             NpgsqlCommand np = new NpgsqlCommand("DROP INDEX \"ginTree\"");
             np.Connection = dbConnection;
             np.ExecuteNonQuery();
-            GinEnabled = false;
         }
-        public ArrayList randSelect(int count)
+        public DataTable randSelect(int count)
         {
-            ArrayList arrayList = new ArrayList();
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
             NpgsqlDataAdapter da = new NpgsqlDataAdapter("SELECT * FROM Таблица_1 ORDER BY random() limit " + count, dbConnection);
-            sw.Stop();
             DataSet ds = new DataSet();
             DataTable dt = new DataTable();
             da.Fill(ds);
             dt = ds.Tables[0];
-            arrayList.Add(dt);
-            arrayList.Add(sw);
-            return arrayList;
+            return dt;
         }
-        public ArrayList diapSelect(int count)
+        public DataTable diapSelect(int count)
         {
-            ArrayList arrayList = new ArrayList();
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            NpgsqlDataAdapter da = new NpgsqlDataAdapter("SELECT * FROM Таблица_1 LIMIT " + count + " OFFSET 50000", dbConnection);
-            sw.Stop();
+            NpgsqlDataAdapter da = new NpgsqlDataAdapter("SELECT * FROM Таблица_1 LIMIT " + count + " OFFSET 1000; " + count, dbConnection);
             DataSet ds = new DataSet();
             DataTable dt = new DataTable();
             da.Fill(ds);
             dt = ds.Tables[0];
-            arrayList.Add(dt);
-            arrayList.Add(sw);
-            return arrayList;
+            return dt;
         }
-        public Stopwatch generateWords(int inputCount)
+        public int generateWords(int inputCount)
         {
             int count = 0;
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
             for (int i = 0; i < inputCount; i++)
             {
                 String randText = mr.generate();
                 int p = r.Next(1, 4);
 
-                NpgsqlCommand fillCommand = new NpgsqlCommand("INSERT INTO Таблица_1 VALUES(DEFAULT, " + p + ", '" + randText + "');");
+                NpgsqlCommand fillCommand = new NpgsqlCommand(
+                    "INSERT INTO Таблица_1 VALUES(" + p + ", '" + randText + "');");
                 fillCommand.Connection = dbConnection;
                 count += fillCommand.ExecuteNonQuery();
             }
-            sw.Stop();
-            return sw;
+            return count;
         }
-        public ArrayList findByWord(String word)
+        public DataTable findByWord()
         {
-            ArrayList arrayList = new ArrayList();
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            NpgsqlDataAdapter da = new NpgsqlDataAdapter("SELECT COUNT(*) FROM Таблица_1 WHERE Поле_4 @@ to_tsquery('" + word + "');", dbConnection);
-            sw.Stop();
+            NpgsqlDataAdapter da = new NpgsqlDataAdapter("SELECT * FROM Таблица_1", dbConnection);
             DataSet ds = new DataSet();
             DataTable dt = new DataTable();
             da.Fill(ds);
             dt = ds.Tables[0];
-            arrayList.Add(dt);
-            arrayList.Add(sw);
-            return arrayList;
-        }
-        public void addGinIndex()
-        {
-            NpgsqlCommand np = new NpgsqlCommand(
-                "CREATE INDEX \"ginTree\" ON \"Таблица_1\" USING gin (\"Поле_4\");");
-            np.Connection = dbConnection;
-            np.ExecuteNonQuery();
-            GinEnabled = true;
-        }
-        public void updateGinIndex()
-        {
-            NpgsqlCommand np = new NpgsqlCommand(
-                "UPDATE \"Таблица_1\" SET \"Поле_4\" = to_tsvector(\"Поле_3\") WHERE \"Поле_4\" IS NULL;");
-            np.CommandTimeout = 1000;
-            np.Connection = dbConnection;
-            np.ExecuteNonQuery();
+            return dt;
         }
     }
     class myRand
